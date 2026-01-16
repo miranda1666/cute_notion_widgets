@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Shared Purchase Log (GBP)</title>
+<style>
+:root{
+--bg:#fbfaf8; --card:#ffffffcc; --stroke:#e9e4dd; --ink:#2b2a28;
+--muted:#6a665f; --soft:#f3efe9; --soft2:#efe9e1; --shadow:0 10px 30px rgba(30,20,10,.06);
+--r:18px;
+}
+*{box-sizing:border-box}
+body{
+margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+color:var(--ink); background:
+radial-gradient(1200px 800px at 20% 0%, #fff 0%, transparent 60%),
+radial-gradient(1200px 800px at 80% 20%, #fff 0%, transparent 60%),
+var(--bg);
+padding:28px 18px;
+}
+.wrap{max-width:980px; margin:0 auto;}
+h1{margin:0; font-size:18px}
+.sub{margin:6px 0 14px; color:var(--muted); font-size:13px}
+.card{
+background:var(--card); border:1px solid var(--stroke); border-radius:var(--r);
+box-shadow:var(--shadow); padding:14px; backdrop-filter: blur(8px);
+}
+.title{display:flex; align-items:flex-end; justify-content:space-between; gap:10px; margin-bottom:10px}
+.title h2{margin:0; font-size:14px; font-weight:650; letter-spacing:.2px}
+.hint{color:var(--muted); font-size:12px}
+.row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+button, input, select{
+font:inherit; border:1px solid var(--stroke); background:#fff; color:var(--ink);
+border-radius:12px; padding:10px 12px; outline:none;
+}
+button{cursor:pointer}
+button.soft{background:var(--soft)}
+button:active{transform:translateY(1px)}
+.divider{height:1px; background:var(--stroke); margin:12px 0}
+.kpi{display:flex; gap:12px; flex-wrap:wrap}
+.kpi .box{flex:1; min-width:160px; background:var(--soft); border:1px solid var(--stroke); border-radius:14px; padding:10px}
+.kpi .num{font-weight:750; font-size:16px}
+.kpi .lab{font-size:12px; color:var(--muted)}
+.list{display:flex; flex-direction:column; gap:8px}
+.item{
+display:flex; justify-content:space-between; align-items:center; gap:10px;
+padding:10px 12px; border-radius:14px; border:1px solid var(--stroke); background:#fff;
+}
+.item .meta{display:flex; flex-direction:column; gap:2px}
+.item .meta b{font-size:13px}
+.item .meta span{font-size:12px; color:var(--muted)}
+.tag{font-size:11px; padding:5px 9px; border-radius:999px; border:1px solid var(--stroke); background:var(--soft)}
+.right{display:flex; gap:8px; align-items:center}
+.smallbtn{padding:8px 10px; border-radius:12px}
+.danger{border-color:#efc2c2}
+.tiny{font-size:12px; color:var(--muted)}
+.foot{margin-top:12px; display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Shared Purchase Log</h1>
+<div class="sub">Select a date to view/edit that day’s purchases. Everything is saved locally (GBP).</div>
+
+<section class="card">
+<div class="title">
+<h2>Log a purchase</h2>
+</div>
+
+<div class="row">
+<input type="date" id="pDate">
+<input type="number" id="pAmt" step="0.01" placeholder="Amount (£)">
+<select id="pCat">
+<option>Food</option><option>Transport</option><option>Fun</option><option>Essentials</option><option>Bills</option><option>Other</option>
+</select>
+<select id="pType">
+<option value="planned">Planned</option>
+<option value="impulse">Impulse</option>
+</select>
+<button id="pAdd">Add</button>
+<button class="soft" id="pClearDay">Clear this day</button>
+</div>
+
+<div class="divider"></div>
+
+<div class="kpi" id="kpis"></div>
+
+<div class="divider"></div>
+
+<div class="list" id="purchaseList"></div>
+
+<div class="foot">
+<span class="tiny">Tip: your data persists via <code>localStorage</code>. Use Reset ONLY if you want to wipe all saved data.</span>
+<button class="smallbtn danger" id="btnReset">Reset all</button>
+</div>
+</section>
+</div>
+
+<script>
+/* --------- Storage + helpers --------- */
+const KEY = "purchase_log_gbp_v1";
+const $ = (id)=>document.getElementById(id);
+
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function uid(){ return Math.random().toString(16).slice(2) + Date.now().toString(16); }
+
+function gbp(n){
+const v = Number(n||0);
+return (isFinite(v)? v:0).toLocaleString(undefined,{style:"currency",currency:"GBP"});
+}
+
+function defaultState(){
+return {
+selectedDate: todayISO(),
+byDate: {} // { "YYYY-MM-DD": [ {id, amount, category, type, createdAt} ] }
+};
+}
+
+let state = load();
+
+function load(){
+try{
+const raw = localStorage.getItem(KEY);
+if(!raw) return defaultState();
+const s = JSON.parse(raw);
+const merged = Object.assign(defaultState(), s);
+if(!merged.selectedDate) merged.selectedDate = todayISO();
+if(!merged.byDate) merged.byDate = {};
+return merged;
+}catch(e){
+return defaultState();
+}
+}
+
+function save(){
+localStorage.setItem(KEY, JSON.stringify(state));
+}
+
+function getDayList(date){
+if(!state.byDate[date]) state.byDate[date] = [];
+return state.byDate[date];
+}
+
+function setSelectedDate(date){
+state.selectedDate = date || todayISO();
+save();
+renderAll(); // clears UI and re-renders for that day
+}
+
+/* --------- Actions --------- */
+$("pDate").value = state.selectedDate;
+
+$("pDate").addEventListener("change", (e)=>{
+setSelectedDate(e.target.value);
+});
+
+$("pAdd").onclick = ()=>{
+const date = $("pDate").value || todayISO();
+const amount = Number($("pAmt").value);
+const category = $("pCat").value;
+const type = $("pType").value;
+
+if(!isFinite(amount) || amount <= 0) return alert("Enter a valid amount.");
+const entry = { id: uid(), amount, category, type, createdAt: new Date().toISOString() };
+
+const list = getDayList(date);
+list.unshift(entry);
+
+state.byDate[date] = list;
+state.selectedDate = date;
+save();
+
+$("pAmt").value = "";
+renderAll();
+};
+
+$("pClearDay").onclick = ()=>{
+const date = $("pDate").value || todayISO();
+if(!confirm(`Clear all purchases for ${date}?`)) return;
+state.byDate[date] = [];
+save();
+renderAll();
+};
+
+$("btnReset").onclick = ()=>{
+if(!confirm("Reset ALL saved purchase logs?")) return;
+localStorage.removeItem(KEY);
+state = defaultState();
+$("pDate").value = state.selectedDate;
+renderAll();
+};
+
+function removePurchase(date, id){
+const list = getDayList(date).filter(p=>p.id !== id);
+state.byDate[date] = list;
+save();
+renderAll();
+}
+
+/* --------- Render --------- */
+function renderKPIs(){
+const date = state.selectedDate;
+const list = getDayList(date);
+
+const total = list.reduce((a,p)=>a + Number(p.amount||0), 0);
+const impulse = list.filter(p=>p.type==="impulse").reduce((a,p)=>a + Number(p.amount||0), 0);
+const planned = list.filter(p=>p.type==="planned").reduce((a,p)=>a + Number(p.amount||0), 0);
+const impulseShare = total>0 ? Math.round((impulse/total)*100) : 0;
+
+$("kpis").innerHTML = `
+<div class="box"><div class="num">${gbp(total)}</div><div class="lab">Total for ${date}</div></div>
+<div class="box"><div class="num">${gbp(planned)}</div><div class="lab">Planned</div></div>
+<div class="box"><div class="num">${gbp(impulse)}</div><div class="lab">Impulse (${impulseShare}%)</div></div>
+`;
+}
+
+function renderList(){
+const date = state.selectedDate;
+const list = getDayList(date);
+
+const root = $("purchaseList");
+root.innerHTML = "";
+
+if(list.length === 0){
+root.innerHTML = `<div class="tiny">No purchases saved for <b>${date}</b>. Add one above.</div>`;
+return;
+}
+
+for(const p of list){
+const el = document.createElement("div");
+el.className = "item";
+el.innerHTML = `
+<div class="meta">
+<b>${p.category} · ${gbp(p.amount)}</b>
+<span>${p.type} · added ${new Date(p.createdAt).toLocaleString()}</span>
+</div>
+<div class="right">
+<span class="tag">${p.type}</span>
+<button class="smallbtn" title="Remove">✕</button>
+</div>
+`;
+el.querySelector("button").onclick = ()=>removePurchase(date, p.id);
+root.appendChild(el);
+}
+}
+
+function renderAll(){
+$("pDate").value = state.selectedDate;
+renderKPIs();
+renderList();
+}
+
+renderAll();
+</script>
+</body>
+</html>
