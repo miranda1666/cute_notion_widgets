@@ -1,0 +1,975 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Soft Finance Dashboard</title>
+<style>
+:root{
+--bg:#fbfaf8; --card:#ffffffcc; --stroke:#e9e4dd; --ink:#2b2a28;
+--muted:#6a665f; --soft:#f3efe9; --soft2:#efe9e1; --shadow:0 10px 30px rgba(30,20,10,.06);
+--r:18px;
+--yes:#d9ead3; --mostly:#fff2cc; --no:#f4cccc;
+--nos:#eee; --low:#f6e7d8; --norm:#e7eef7;
+--a:#e9ddff; --b:#dff2ff; --c:#ffe6ef; --d:#e8f7e9; --e:#fff2d9;
+}
+*{box-sizing:border-box}
+body{
+margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+color:var(--ink); background:
+radial-gradient(1200px 800px at 20% 0%, #fff 0%, transparent 60%),
+radial-gradient(1200px 800px at 80% 20%, #fff 0%, transparent 60%),
+var(--bg);
+}
+header{
+padding:28px 18px 12px; max-width:1100px; margin:0 auto;
+display:flex; align-items:flex-end; justify-content:space-between; gap:12px;
+}
+h1{margin:0; font-size:20px; letter-spacing:.2px}
+.sub{margin:6px 0 0; color:var(--muted); font-size:13px}
+.topbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+button, input, select, textarea{
+font:inherit; border:1px solid var(--stroke); background:#fff; color:var(--ink);
+border-radius:12px; padding:10px 12px; outline:none;
+}
+button{cursor:pointer}
+button.soft{background:var(--soft)}
+button:active{transform:translateY(1px)}
+.wrap{max-width:1100px; margin:0 auto; padding:12px 18px 28px}
+.grid{
+display:grid; gap:14px;
+grid-template-columns: repeat(12, 1fr);
+}
+.card{
+grid-column: span 4;
+background:var(--card); border:1px solid var(--stroke); border-radius:var(--r);
+box-shadow:var(--shadow); padding:14px;
+backdrop-filter: blur(8px);
+min-height:140px;
+}
+.card.big{grid-column: span 8}
+.card.full{grid-column: 1 / -1}
+.title{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px}
+.title h2{margin:0; font-size:14px; font-weight:650; letter-spacing:.2px}
+.hint{color:var(--muted); font-size:12px}
+.row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+.tiny{font-size:12px; color:var(--muted)}
+.pill{
+border:1px solid var(--stroke); background:#fff; border-radius:999px;
+padding:8px 12px; font-size:13px; cursor:pointer;
+}
+.pill.on{background:var(--soft)}
+.pills{display:flex; gap:8px; flex-wrap:wrap}
+.divider{height:1px; background:var(--stroke); margin:10px 0}
+.mini{
+padding:10px; border:1px dashed var(--stroke); border-radius:14px; background:linear-gradient(180deg,#fff, var(--soft));
+}
+.kpi{display:flex; gap:12px; flex-wrap:wrap}
+.kpi .box{flex:1; min-width:120px; background:var(--soft); border:1px solid var(--stroke); border-radius:14px; padding:10px}
+.kpi .num{font-weight:750; font-size:16px}
+.kpi .lab{font-size:12px; color:var(--muted)}
+.bars{display:flex; gap:8px; align-items:flex-end; height:92px; padding:8px; border-radius:14px; border:1px solid var(--stroke); background:#fff}
+.bar{flex:1; border-radius:12px; border:1px solid var(--stroke); background:linear-gradient(180deg,var(--soft2),#fff)}
+.bar > i{display:block; height:30%; border-radius:12px; background:rgba(40,30,20,.10)}
+.barlabel{display:flex; justify-content:space-between; gap:10px; font-size:12px; color:var(--muted); margin-top:8px}
+.barlabel span{max-width:28%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.sqgrid{display:grid; grid-template-columns: repeat(6, 1fr); gap:8px; padding:10px; border:1px solid var(--stroke); border-radius:14px; background:#fff}
+.sq{
+width:100%; aspect-ratio:1; border-radius:10px; border:1px solid var(--stroke);
+background:var(--nos); cursor:pointer;
+}
+.sq[data-v="no"]{background:var(--nos)}
+.sq[data-v="low"]{background:var(--low)}
+.sq[data-v="normal"]{background:var(--norm)}
+.sq small{display:block; text-align:center; font-size:10px; color:rgba(0,0,0,.35); margin-top:6px}
+.list{display:flex; flex-direction:column; gap:8px}
+.item{
+display:flex; justify-content:space-between; align-items:center; gap:10px;
+padding:10px 12px; border-radius:14px; border:1px solid var(--stroke); background:#fff;
+}
+.item .meta{display:flex; flex-direction:column; gap:2px}
+.item .meta b{font-size:13px}
+.item .meta span{font-size:12px; color:var(--muted)}
+.tag{font-size:11px; padding:5px 9px; border-radius:999px; border:1px solid var(--stroke); background:var(--soft)}
+.split{display:grid; grid-template-columns: 1fr 1fr; gap:10px}
+.drop{
+border:1px dashed var(--stroke); border-radius:14px; padding:10px; background:#fff;
+min-height:90px;
+}
+.drop h3{margin:0 0 8px; font-size:12px; color:var(--muted); font-weight:650}
+.dot{
+display:inline-flex; align-items:center; gap:8px;
+padding:8px 10px; border-radius:999px; border:1px solid var(--stroke);
+background:linear-gradient(180deg,#fff,var(--soft)); cursor:grab; margin:6px 6px 0 0;
+font-size:12px;
+}
+.meter{
+border:1px solid var(--stroke); border-radius:14px; padding:10px; background:#fff;
+}
+.meter .track{height:12px; border-radius:999px; background:var(--soft); border:1px solid var(--stroke); overflow:hidden}
+.meter .fill{height:100%; width:30%; background:rgba(40,30,20,.12)}
+textarea{width:100%; min-height:74px; resize:vertical; background:#fff}
+.two{display:grid; grid-template-columns: 1fr 1fr; gap:10px}
+.right{display:flex; gap:8px; align-items:center}
+.smallbtn{padding:8px 10px; border-radius:12px}
+.danger{background:#fff; border-color:#efc2c2}
+.ok{background:#fff; border-color:#cfe7d3}
+.muted{color:var(--muted)}
+.foot{margin-top:12px; display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap}
+@media (max-width: 980px){
+.card{grid-column: span 6}
+.card.big{grid-column: span 12}
+}
+@media (max-width: 620px){
+.card{grid-column: span 12}
+header{flex-direction:column; align-items:flex-start}
+}
+</style>
+</head>
+<body>
+<header>
+<div>
+<h1>Soft Finance Dashboard</h1>
+<div class="sub">Aesthetic widgets + shared state (localStorage). Click tiles, drag dots, and log purchases.</div>
+</div>
+<div class="topbar">
+<button class="soft" id="btnExport">Export JSON</button>
+<button class="soft" id="btnImport">Import JSON</button>
+<button class="danger" id="btnReset">Reset</button>
+</div>
+</header>
+
+<div class="wrap">
+<div class="grid">
+<!-- Shared input: purchase log (powers category pulse + impulse/planned + treats + values) -->
+<section class="card big">
+<div class="title">
+<h2>Shared Purchase Log</h2>
+<span class="hint">Powers: Category Pulse, Impulse vs Planned, Little Treats, Values-based spend</span>
+</div>
+<div class="row">
+<input type="date" id="pDate">
+<input type="number" id="pAmt" step="0.01" placeholder="Amount">
+<select id="pCat">
+<option>Food</option><option>Transport</option><option>Fun</option><option>Essentials</option><option>Bills</option><option>Other</option>
+</select>
+<select id="pType">
+<option value="planned">Planned</option>
+<option value="impulse">Impulse</option>
+</select>
+<select id="pVal">
+<option value="">Value tag (optional)</option>
+<option>Freedom</option><option>Comfort</option><option>Growth</option><option>Joy</option><option>Stability</option>
+</select>
+<label class="pill" style="display:flex;gap:8px;align-items:center">
+<input type="checkbox" id="pTreat" style="transform:scale(1.1)">
+Treat
+</label>
+<button id="pAdd">Add</button>
+</div>
+<div class="divider"></div>
+<div class="kpi" id="kpis"></div>
+<div class="divider"></div>
+<div class="list" id="purchaseList"></div>
+<div class="foot">
+<span class="tiny">Tip: Add purchases to see other widgets update automatically.</span>
+<button class="smallbtn soft" id="pClearToday">Clear today’s purchases</button>
+</div>
+</section>
+
+<!-- 2. Daily Spend Check-In -->
+<section class="card">
+<div class="title">
+<h2>Daily Intentional Spend Check-In</h2><span class="hint">Idea #2</span>
+</div>
+<div class="tiny">Did I spend intentionally today?</div>
+<div class="pills" id="intentPills">
+<span class="pill" data-intent="yes">Yes</span>
+<span class="pill" data-intent="mostly">Mostly</span>
+<span class="pill" data-intent="no">No</span>
+</div>
+<div class="divider"></div>
+<div class="tiny">Today’s status: <b id="intentNow">—</b></div>
+<div class="tiny muted">Auto hint: lots of impulse spend nudges toward “Mostly/No”.</div>
+</section>
+
+<!-- 3. No/Low/Normal Spend Tracker -->
+<section class="card">
+<div class="title">
+<h2>No / Low / Normal Spend Grid</h2><span class="hint">Idea #3</span>
+</div>
+<div class="tiny">Click squares to cycle: no → low → normal.</div>
+<div class="sqgrid" id="dayGrid"></div>
+<div class="tiny muted">Auto hint: if today has $0 logged, it suggests “no”.</div>
+</section>
+
+<!-- 4. Category Pulse -->
+<section class="card">
+<div class="title">
+<h2>Soft Category Pulse (This Week)</h2><span class="hint">Idea #4</span>
+</div>
+<div class="bars" id="pulseBars"></div>
+<div class="barlabel" id="pulseLabels"></div>
+<div class="tiny muted">Based on logged purchases this week.</div>
+</section>
+
+<!-- 6. Impulse vs Planned -->
+<section class="card">
+<div class="title">
+<h2>Impulse vs Planned</h2><span class="hint">Idea #6</span>
+</div>
+<div class="split">
+<div class="drop" id="dropPlanned">
+<h3>Planned</h3>
+<div id="dotsPlanned"></div>
+</div>
+<div class="drop" id="dropImpulse">
+<h3>Impulse</h3>
+<div id="dotsImpulse"></div>
+</div>
+</div>
+<div class="tiny muted">Drag dots between columns to reclassify (updates your purchase log + KPIs).</div>
+</section>
+
+<!-- 5. Little Treats -->
+<section class="card">
+<div class="title">
+<h2>Little Treats</h2><span class="hint">Idea #5</span>
+</div>
+<div class="tiny">Treat count this week: <b id="treatWeek">0</b></div>
+<div class="divider"></div>
+<div class="list" id="treatList"></div>
+<div class="tiny muted">Treats are purchases flagged “Treat”.</div>
+</section>
+
+<!-- 15. Values-Based Spend -->
+<section class="card">
+<div class="title">
+<h2>Values-Based Spend</h2><span class="hint">Idea #15</span>
+</div>
+<div class="tiny">Which values did your spending support this week?</div>
+<div class="divider"></div>
+<div class="list" id="valuesList"></div>
+<div class="tiny muted">Add a “Value tag” when logging a purchase.</div>
+</section>
+
+<!-- 7. Savings Garden -->
+<section class="card">
+<div class="title">
+<h2>Savings Garden</h2><span class="hint">Idea #7</span>
+</div>
+<div class="row">
+<input type="number" id="savAdd" step="0.01" placeholder="Add savings">
+<button id="savBtn">Add</button>
+<button class="smallbtn soft" id="savUndo">Undo</button>
+</div>
+<div class="divider"></div>
+<div class="meter">
+<div class="row" style="justify-content:space-between">
+<span class="tiny">Savings total</span>
+<span class="tiny"><b id="savTotal">$0</b> / <span id="savGoalTxt">$500</span></span>
+</div>
+<div class="track"><div class="fill" id="savFill"></div></div>
+</div>
+<div class="divider"></div>
+<div class="tiny">Garden:</div>
+<div class="row" id="garden" style="font-size:18px; gap:6px; flex-wrap:wrap"></div>
+<div class="tiny muted">Every $50 grows a plant. (Configurable in code.)</div>
+</section>
+
+<!-- 9. Emergency Fund Comfort Meter -->
+<section class="card">
+<div class="title">
+<h2>Emergency Fund Comfort Meter</h2><span class="hint">Idea #9</span>
+</div>
+<div class="row">
+<input type="number" id="efCurrent" step="0.01" placeholder="Current">
+<input type="number" id="efTarget" step="0.01" placeholder="Target">
+<button id="efSave">Save</button>
+</div>
+<div class="divider"></div>
+<div class="meter">
+<div class="row" style="justify-content:space-between">
+<span class="tiny">Comfort</span><span class="tiny"><b id="efLabel">—</b></span>
+</div>
+<div class="track"><div class="fill" id="efFill"></div></div>
+<div class="tiny muted" id="efDetail"></div>
+</div>
+<div class="tiny muted">Tip: “Target” can be your emergency fund goal (e.g., 3–6 months expenses).</div>
+</section>
+
+<!-- 13. Money Stress Level -->
+<section class="card">
+<div class="title">
+<h2>Money Stress Level</h2><span class="hint">Idea #13</span>
+</div>
+<div class="tiny">How stressed do you feel right now?</div>
+<div class="row" style="margin-top:10px">
+<input type="range" id="stress" min="0" max="100" value="40" style="width:100%">
+</div>
+<div class="row" style="justify-content:space-between">
+<span class="tiny muted">Calm</span>
+<span class="tiny"><b id="stressTxt">40</b>/100</span>
+<span class="tiny muted">Overwhelmed</span>
+</div>
+<div class="tiny muted">Auto note: high impulse spending can correlate with stress—use this for awareness, not judgment.</div>
+</section>
+
+<!-- 12. Subscription Gentle Reminder -->
+<section class="card big">
+<div class="title">
+<h2>Subscriptions</h2><span class="hint">Idea #12</span>
+</div>
+<div class="row">
+<input id="subName" placeholder="Name (e.g., Spotify)">
+<input id="subCost" type="number" step="0.01" placeholder="Monthly cost">
+<input id="subRenew" type="number" min="1" max="31" placeholder="Renew day">
+<button id="subAdd">Add</button>
+</div>
+<div class="divider"></div>
+<div class="list" id="subsList"></div>
+<div class="tiny muted">Toggle “Still worth it?” for gentle awareness.</div>
+</section>
+
+<!-- 10. Weekly Money Intent -->
+<section class="card big">
+<div class="title">
+<h2>Weekly Money Intent</h2><span class="hint">Idea #10</span>
+</div>
+<div class="two">
+<div>
+<div class="tiny">This week, I want to spend on…</div>
+<input id="intentSpend" placeholder="e.g., groceries + health">
+</div>
+<div>
+<div class="tiny">…and avoid…</div>
+<input id="intentAvoid" placeholder="e.g., late-night scrolling buys">
+</div>
+</div>
+<div class="row" style="margin-top:10px">
+<button id="weeklySave">Save intent</button>
+<span class="tiny muted" id="weeklyStamp">—</span>
+</div>
+<div class="tiny muted">This will gently highlight mismatches when impulse spending spikes.</div>
+</section>
+
+<!-- 11. End-of-Month Reflection -->
+<section class="card full">
+<div class="title">
+<h2>End-of-Month Money Reflection</h2><span class="hint">Idea #11</span>
+</div>
+<div class="two">
+<div class="mini">
+<div class="tiny">One thing I did well</div>
+<textarea id="rWell" placeholder="Write something small."></textarea>
+</div>
+<div class="mini">
+<div class="tiny">One thing I’d adjust</div>
+<textarea id="rAdjust" placeholder="A gentle tweak."></textarea>
+</div>
+</div>
+<div class="mini" style="margin-top:10px">
+<div class="tiny">One thing I’m proud of</div>
+<textarea id="rProud" placeholder="You can be proud of consistency, not perfection."></textarea>
+</div>
+<div class="row" style="margin-top:10px">
+<button id="rSave">Save reflection</button>
+<span class="tiny muted" id="rStamp">—</span>
+</div>
+</section>
+
+</div>
+</div>
+
+<script>
+/* --------------------------- State + Storage --------------------------- */
+const KEY = "soft_finance_dashboard_v1";
+const $ = (id)=>document.getElementById(id);
+
+const todayISO = ()=> new Date().toISOString().slice(0,10);
+const monthKey = (dIso)=> dIso.slice(0,7);
+const startOfWeekISO = (d=new Date())=>{
+const x = new Date(d); const day=(x.getDay()+6)%7; // Mon=0
+x.setDate(x.getDate()-day);
+return x.toISOString().slice(0,10);
+};
+const inWeek = (iso, weekStartIso)=>{
+const a=new Date(weekStartIso), b=new Date(iso);
+const diff=(b-a)/(1000*60*60*24);
+return diff>=0 && diff<7;
+};
+const money = (n)=> {
+const v = Number(n||0);
+return (isFinite(v)? v:0).toLocaleString(undefined,{style:"currency",currency:"USD"});
+};
+
+function defaultState(){
+return {
+purchases: [], // {id,date,amount,category,type, treat,valueTag}
+dailyIntent: {}, // {date: "yes|mostly|no"}
+dayType: {}, // {date: "no|low|normal"} for last 36 days
+savings: { total: 0, goal: 500, history: [] }, // history: [delta]
+emergency: { current: 0, target: 1000 },
+weeklyIntent: { weekStart: startOfWeekISO(), spendOn:"", avoid:"", savedAt:null },
+reflections: {}, // {YYYY-MM: {well,adjust,proud,savedAt}}
+subs: [], // {id,name,cost,renewDay,worthIt:true}
+stress: 40
+};
+}
+function load(){
+try{
+const raw = localStorage.getItem(KEY);
+if(!raw) return defaultState();
+const s = JSON.parse(raw);
+return Object.assign(defaultState(), s);
+}catch(e){ return defaultState(); }
+}
+function save(){
+localStorage.setItem(KEY, JSON.stringify(state));
+}
+
+let state = load();
+
+/* --------------------------- Export / Import / Reset --------------------------- */
+$("btnExport").onclick = ()=>{
+const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
+const a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="soft-finance-dashboard.json";
+a.click();
+URL.revokeObjectURL(a.href);
+};
+$("btnImport").onclick = ()=>{
+const inp=document.createElement("input");
+inp.type="file"; inp.accept="application/json";
+inp.onchange= async ()=>{
+const f=inp.files?.[0]; if(!f) return;
+const txt=await f.text();
+try{
+const obj=JSON.parse(txt);
+state = Object.assign(defaultState(), obj);
+save(); renderAll();
+}catch(e){ alert("Invalid JSON file."); }
+};
+inp.click();
+};
+$("btnReset").onclick = ()=>{
+if(!confirm("Reset everything?")) return;
+localStorage.removeItem(KEY);
+state = defaultState();
+renderAll();
+};
+
+/* --------------------------- Shared Purchase Log --------------------------- */
+function uid(){ return Math.random().toString(16).slice(2)+Date.now().toString(16); }
+
+function purchasesForWeek(weekStart){
+return state.purchases.filter(p=> inWeek(p.date, weekStart));
+}
+function purchasesForDate(iso){
+return state.purchases.filter(p=> p.date===iso);
+}
+
+function addPurchase(p){
+state.purchases.unshift(p);
+save();
+renderAll();
+}
+function removePurchase(id){
+state.purchases = state.purchases.filter(p=>p.id!==id);
+save(); renderAll();
+}
+function updatePurchase(id, patch){
+const p = state.purchases.find(x=>x.id===id);
+if(!p) return;
+Object.assign(p, patch);
+save(); renderAll();
+}
+
+$("pDate").value = todayISO();
+$("pAdd").onclick = ()=>{
+const date = $("pDate").value || todayISO();
+const amount = Number($("pAmt").value);
+const category = $("pCat").value;
+const type = $("pType").value;
+const treat = $("pTreat").checked;
+const valueTag = $("pVal").value || "";
+if(!isFinite(amount) || amount<=0) return alert("Enter a valid amount.");
+addPurchase({ id:uid(), date, amount, category, type, treat, valueTag });
+$("pAmt").value=""; $("pTreat").checked=false; $("pVal").value="";
+};
+
+$("pClearToday").onclick = ()=>{
+const t = todayISO();
+state.purchases = state.purchases.filter(p=>p.date!==t);
+save(); renderAll();
+};
+
+/* --------------------------- Widget #2: Daily Intentional Check-in --------------------------- */
+function setDailyIntent(date, val){
+state.dailyIntent[date]=val;
+save(); renderAll();
+}
+$("intentPills").addEventListener("click",(e)=>{
+const pill=e.target.closest(".pill"); if(!pill) return;
+const v=pill.dataset.intent;
+setDailyIntent(todayISO(), v);
+});
+
+/* --------------------------- Widget #3: No/Low/Normal Grid --------------------------- */
+const GRID_DAYS = 36; // 6x6
+function lastNDays(n){
+const out=[];
+const d=new Date();
+for(let i=n-1;i>=0;i--){
+const x=new Date(d); x.setDate(d.getDate()-i);
+out.push(x.toISOString().slice(0,10));
+}
+return out;
+}
+function cycleDayType(date){
+const cur=state.dayType[date] || "no";
+const next = cur==="no" ? "low" : cur==="low" ? "normal" : "no";
+state.dayType[date]=next;
+save(); renderAll();
+}
+
+/* --------------------------- Widget #4: Category Pulse --------------------------- */
+function categoryTotalsThisWeek(){
+const weekStart=startOfWeekISO(new Date());
+const totals={};
+for(const p of purchasesForWeek(weekStart)){
+totals[p.category]=(totals[p.category]||0)+Number(p.amount||0);
+}
+const entries=Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+return {weekStart, entries};
+}
+
+/* --------------------------- Widget #6: Drag dots planned/impulse --------------------------- */
+function dotEl(p){
+const el=document.createElement("span");
+el.className="dot";
+el.draggable=true;
+el.dataset.id=p.id;
+el.textContent = `${p.category} · ${money(p.amount)}${p.treat?" · Treat":""}${p.valueTag?` · ${p.valueTag}`:""}`;
+el.addEventListener("dragstart",(ev)=>{
+ev.dataTransfer.setData("text/plain", p.id);
+});
+return el;
+}
+function bindDrop(zone, newType){
+zone.addEventListener("dragover",(e)=>e.preventDefault());
+zone.addEventListener("drop",(e)=>{
+e.preventDefault();
+const id=e.dataTransfer.getData("text/plain");
+if(!id) return;
+updatePurchase(id,{type:newType});
+});
+}
+bindDrop($("dropPlanned"),"planned");
+bindDrop($("dropImpulse"),"impulse");
+
+/* --------------------------- Widget #7: Savings garden --------------------------- */
+const PLANT_STEP = 50;
+const PLANTS = ["🌱","🌿","🍃","🌸","🌼","🌷","🌳"];
+$("savBtn").onclick = ()=>{
+const v=Number($("savAdd").value);
+if(!isFinite(v) || v<=0) return alert("Enter a valid savings amount.");
+state.savings.total = Number(state.savings.total||0) + v;
+state.savings.history.unshift(v);
+$("savAdd").value="";
+save(); renderAll();
+};
+$("savUndo").onclick = ()=>{
+const last=state.savings.history.shift();
+if(!last) return;
+state.savings.total = Math.max(0, Number(state.savings.total||0) - last);
+save(); renderAll();
+};
+
+/* --------------------------- Widget #9: Emergency meter --------------------------- */
+$("efSave").onclick = ()=>{
+state.emergency.current = Number($("efCurrent").value||0);
+state.emergency.target = Math.max(1, Number($("efTarget").value||1));
+save(); renderAll();
+};
+
+/* --------------------------- Widget #10: Weekly intent --------------------------- */
+$("weeklySave").onclick = ()=>{
+state.weeklyIntent.weekStart = startOfWeekISO(new Date());
+state.weeklyIntent.spendOn = $("intentSpend").value.trim();
+state.weeklyIntent.avoid = $("intentAvoid").value.trim();
+state.weeklyIntent.savedAt = new Date().toISOString();
+save(); renderAll();
+};
+
+/* --------------------------- Widget #11: Reflection --------------------------- */
+$("rSave").onclick = ()=>{
+const mk=monthKey(todayISO());
+state.reflections[mk]={
+well:$("rWell").value.trim(),
+adjust:$("rAdjust").value.trim(),
+proud:$("rProud").value.trim(),
+savedAt:new Date().toISOString()
+};
+save(); renderAll();
+};
+
+/* --------------------------- Widget #12: Subscriptions --------------------------- */
+$("subAdd").onclick = ()=>{
+const name=$("subName").value.trim();
+const cost=Number($("subCost").value||0);
+const renewDay=Number($("subRenew").value||0);
+if(!name) return alert("Name required.");
+if(!isFinite(cost) || cost<=0) return alert("Valid cost required.");
+if(!Number.isFinite(renewDay) || renewDay<1 || renewDay>31) return alert("Renew day 1–31.");
+state.subs.unshift({id:uid(), name, cost, renewDay, worthIt:true});
+$("subName").value=""; $("subCost").value=""; $("subRenew").value="";
+save(); renderAll();
+};
+function toggleSub(id){
+const s=state.subs.find(x=>x.id===id); if(!s) return;
+s.worthIt=!s.worthIt;
+save(); renderAll();
+}
+function removeSub(id){
+state.subs=state.subs.filter(x=>x.id!==id);
+save(); renderAll();
+}
+
+/* --------------------------- Widget #13: Stress --------------------------- */
+$("stress").oninput = ()=>{
+state.stress = Number($("stress").value);
+save(); renderAll();
+};
+
+/* --------------------------- Interconnection helpers --------------------------- */
+function suggestDailyFromPurchases(){
+const t=todayISO();
+const ps=purchasesForDate(t);
+const total=ps.reduce((a,p)=>a+Number(p.amount||0),0);
+const impulse=ps.filter(p=>p.type==="impulse").reduce((a,p)=>a+Number(p.amount||0),0);
+const ratio = total>0 ? impulse/total : 0;
+
+// Suggest dayType if user hasn't set it
+if(!state.dayType[t]){
+state.dayType[t] = total===0 ? "no" : total<25 ? "low" : "normal";
+}
+// Suggest dailyIntent if unset
+if(!state.dailyIntent[t]){
+state.dailyIntent[t] = total===0 ? "yes" : ratio>0.6 ? "no" : ratio>0.25 ? "mostly" : "yes";
+}
+}
+
+function formatStamp(iso){
+if(!iso) return "—";
+const d=new Date(iso);
+return `Saved ${d.toLocaleString()}`;
+}
+
+/* --------------------------- Render --------------------------- */
+function renderPurchases(){
+const list=$("purchaseList"); list.innerHTML="";
+const ps=state.purchases.slice(0,12);
+if(ps.length===0){
+list.innerHTML = `<div class="tiny muted">No purchases yet. Add one above.</div>`;
+return;
+}
+for(const p of ps){
+const el=document.createElement("div"); el.className="item";
+const left=document.createElement("div"); left.className="meta";
+left.innerHTML = `<b>${p.category} · ${money(p.amount)}</b>
+<span>${p.date} · ${p.type}${p.treat?" · Treat":""}${p.valueTag?` · ${p.valueTag}`:""}</span>`;
+const right=document.createElement("div"); right.className="right";
+const tag=document.createElement("span"); tag.className="tag"; tag.textContent=p.type;
+const btn=document.createElement("button"); btn.className="smallbtn"; btn.textContent="✕";
+btn.onclick=()=>removePurchase(p.id);
+right.append(tag, btn);
+el.append(left,right);
+list.appendChild(el);
+}
+}
+
+function renderKPIs(){
+const t=todayISO();
+const psToday=purchasesForDate(t);
+const totalToday=psToday.reduce((a,p)=>a+Number(p.amount||0),0);
+const impulseToday=psToday.filter(p=>p.type==="impulse").reduce((a,p)=>a+Number(p.amount||0),0);
+const treatsToday=psToday.filter(p=>p.treat).length;
+
+const ws=startOfWeekISO(new Date());
+const psWeek=purchasesForWeek(ws);
+const totalWeek=psWeek.reduce((a,p)=>a+Number(p.amount||0),0);
+const impulseWeek=psWeek.filter(p=>p.type==="impulse").reduce((a,p)=>a+Number(p.amount||0),0);
+
+const k=$("kpis");
+k.innerHTML = `
+<div class="box"><div class="num">${money(totalToday)}</div><div class="lab">Spent today</div></div>
+<div class="box"><div class="num">${money(totalWeek)}</div><div class="lab">Spent this week</div></div>
+<div class="box"><div class="num">${Math.round((totalWeek?impulseWeek/totalWeek:0)*100)}%</div><div class="lab">Impulse share (week)</div></div>
+<div class="box"><div class="num">${treatsToday}</div><div class="lab">Treats today</div></div>
+<div class="box"><div class="num">${money(state.savings.total||0)}</div><div class="lab">Savings total</div></div>
+`;
+}
+
+function renderDailyIntent(){
+const t=todayISO();
+const v=state.dailyIntent[t];
+$("intentNow").textContent = v ? (v==="yes"?"Yes":v==="mostly"?"Mostly":"No") : "—";
+const pills=[...$("intentPills").querySelectorAll(".pill")];
+pills.forEach(p=>{
+p.classList.toggle("on", p.dataset.intent===v);
+// subtle background cue
+if(p.dataset.intent==="yes") p.style.background = (p.dataset.intent===v)? "var(--yes)":"";
+if(p.dataset.intent==="mostly") p.style.background = (p.dataset.intent===v)? "var(--mostly)":"";
+if(p.dataset.intent==="no") p.style.background = (p.dataset.intent===v)? "var(--no)":"";
+});
+}
+
+function renderDayGrid(){
+const grid=$("dayGrid");
+grid.innerHTML="";
+const days=lastNDays(GRID_DAYS);
+for(const d of days){
+const sq=document.createElement("div");
+sq.className="sq";
+const v=state.dayType[d] || "no";
+sq.dataset.v=v;
+const dd = Number(d.slice(8,10));
+sq.innerHTML = `<small>${dd}</small>`;
+sq.title = `${d}: ${v}`;
+sq.onclick=()=>cycleDayType(d);
+grid.appendChild(sq);
+}
+}
+
+function renderCategoryPulse(){
+const {entries}=categoryTotalsThisWeek();
+const cats = ["Food","Transport","Fun","Essentials","Bills","Other"];
+const totals = Object.fromEntries(cats.map(c=>[c,0]));
+for(const [c,v] of entries) totals[c]=v;
+
+const max = Math.max(1, ...Object.values(totals));
+const bars=$("pulseBars"); bars.innerHTML="";
+const labels=$("pulseLabels"); labels.innerHTML="";
+
+cats.forEach((c,idx)=>{
+const bar=document.createElement("div"); bar.className="bar";
+const fill=document.createElement("i");
+const h = Math.max(6, Math.round((totals[c]/max)*100));
+fill.style.height = h+"%";
+bar.appendChild(fill);
+bars.appendChild(bar);
+
+const s=document.createElement("span");
+s.textContent=c;
+s.title = `${c}: ${money(totals[c])}`;
+labels.appendChild(s);
+});
+}
+
+function renderImpulsePlannedDots(){
+const ws=startOfWeekISO(new Date());
+const week = purchasesForWeek(ws).slice(0,14); // keep light
+const planned=$("dotsPlanned"), impulse=$("dotsImpulse");
+planned.innerHTML=""; impulse.innerHTML="";
+if(week.length===0){
+planned.innerHTML = `<span class="tiny muted">No dots yet.</span>`;
+impulse.innerHTML = `<span class="tiny muted">Log purchases to see dots.</span>`;
+return;
+}
+for(const p of week){
+const el=dotEl(p);
+(p.type==="planned"?planned:impulse).appendChild(el);
+}
+}
+
+function renderTreats(){
+const ws=startOfWeekISO(new Date());
+const treats = purchasesForWeek(ws).filter(p=>p.treat).slice(0,8);
+$("treatWeek").textContent = purchasesForWeek(ws).filter(p=>p.treat).length;
+const list=$("treatList"); list.innerHTML="";
+if(treats.length===0){
+list.innerHTML = `<div class="tiny muted">No treats logged this week.</div>`;
+return;
+}
+for(const p of treats){
+const el=document.createElement("div"); el.className="item";
+el.innerHTML = `<div class="meta"><b>${p.category} · ${money(p.amount)}</b><span>${p.date} · ${p.type}</span></div><span class="tag">Treat</span>`;
+list.appendChild(el);
+}
+}
+
+function renderValues(){
+const ws=startOfWeekISO(new Date());
+const week = purchasesForWeek(ws).filter(p=>p.valueTag);
+const totals={};
+for(const p of week){
+totals[p.valueTag]=(totals[p.valueTag]||0)+Number(p.amount||0);
+}
+const entries=Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+const list=$("valuesList"); list.innerHTML="";
+if(entries.length===0){
+list.innerHTML = `<div class="tiny muted">No value tags yet. Add one in the Purchase Log.</div>`;
+return;
+}
+for(const [val,amt] of entries.slice(0,8)){
+const el=document.createElement("div"); el.className="item";
+el.innerHTML = `<div class="meta"><b>${val}</b><span>${money(amt)} this week</span></div><span class="tag">Value</span>`;
+list.appendChild(el);
+}
+}
+
+function renderSavings(){
+$("savTotal").textContent = money(state.savings.total||0);
+$("savGoalTxt").textContent = money(state.savings.goal||500);
+const ratio = Math.min(1, (Number(state.savings.total||0) / Math.max(1, Number(state.savings.goal||500))));
+$("savFill").style.width = Math.max(3, Math.round(ratio*100))+"%";
+
+const plantsCount = Math.floor((Number(state.savings.total||0))/PLANT_STEP);
+const garden=$("garden"); garden.innerHTML="";
+const shown = Math.min(24, plantsCount);
+for(let i=0;i<shown;i++){
+const s=document.createElement("span");
+s.textContent = PLANTS[i % PLANTS.length];
+garden.appendChild(s);
+}
+if(plantsCount===0){
+garden.innerHTML = `<span class="tiny muted">Add savings to grow your first 🌱</span>`;
+}else if(plantsCount>shown){
+const more=document.createElement("span");
+more.className="tiny muted";
+more.textContent = `+${plantsCount-shown} more`;
+garden.appendChild(more);
+}
+}
+
+function renderEmergency(){
+$("efCurrent").value = state.emergency.current ?? 0;
+$("efTarget").value = state.emergency.target ?? 1000;
+
+const cur = Number(state.emergency.current||0);
+const tar = Math.max(1, Number(state.emergency.target||1));
+const r = Math.min(1, cur/tar);
+$("efFill").style.width = Math.max(3, Math.round(r*100))+"%";
+
+let label="Barely", detail="";
+if(r>=0.9){ label="Safe"; detail="You’re close to (or at) your target buffer."; }
+else if(r>=0.6){ label="Comfortable"; detail="You have meaningful breathing room."; }
+else if(r>=0.3){ label="Okay"; detail="Some cushion—keep nurturing it gently."; }
+else { label="Barely"; detail="It’s okay to start small. Any amount helps."; }
+
+$("efLabel").textContent = label;
+$("efDetail").textContent = `${money(cur)} of ${money(tar)} • ${detail}`;
+}
+
+function renderStress(){
+$("stress").value = state.stress ?? 40;
+$("stressTxt").textContent = String(state.stress ?? 40);
+
+// Soft interconnection: if impulse share high today, nudge stress label (no judgment)
+const t=todayISO();
+const ps=purchasesForDate(t);
+const total=ps.reduce((a,p)=>a+Number(p.amount||0),0);
+const impulse=ps.filter(p=>p.type==="impulse").reduce((a,p)=>a+Number(p.amount||0),0);
+const r = total>0 ? impulse/total : 0;
+
+const note = (r>0.6 && (state.stress??0)<60)
+? "Small note: today’s spend leaned impulse-heavy—check in with your stress gently."
+: "";
+// We’ll tuck this into the existing muted paragraph by updating its text slightly:
+// (keeping it simple without adding new DOM)
+}
+
+function renderWeeklyIntent(){
+const wi=state.weeklyIntent || {};
+// if week rolled over, keep text but update weekStart
+const curWS = startOfWeekISO(new Date());
+if(wi.weekStart !== curWS) wi.weekStart = curWS;
+
+$("intentSpend").value = wi.spendOn || "";
+$("intentAvoid").value = wi.avoid || "";
+
+// Soft mismatch hint: if impulse > planned this week and "avoid" set, show nudge
+const ws=curWS;
+const week=purchasesForWeek(ws);
+const planned=week.filter(p=>p.type==="planned").reduce((a,p)=>a+p.amount,0);
+const impulse=week.filter(p=>p.type==="impulse").reduce((a,p)=>a+p.amount,0);
+const mismatch = (wi.avoid && impulse > planned && (impulse+planned)>0) ? " · gentle mismatch detected" : "";
+$("weeklyStamp").textContent = (wi.savedAt? formatStamp(wi.savedAt) : "Not saved yet") + mismatch;
+
+state.weeklyIntent = wi;
+}
+
+function renderReflection(){
+const mk=monthKey(todayISO());
+const r=state.reflections[mk] || {well:"",adjust:"",proud:"",savedAt:null};
+$("rWell").value = r.well || "";
+$("rAdjust").value = r.adjust || "";
+$("rProud").value = r.proud || "";
+$("rStamp").textContent = r.savedAt ? formatStamp(r.savedAt) : "Not saved yet";
+}
+
+function renderSubs(){
+const list=$("subsList"); list.innerHTML="";
+if(!state.subs.length){
+list.innerHTML = `<div class="tiny muted">No subscriptions added.</div>`;
+return;
+}
+// Gentle “upcoming renewal” sort: next renew day relative to today’s date
+const today = new Date();
+const d = today.getDate();
+const sorted=[...state.subs].sort((a,b)=>{
+const na = (a.renewDay>=d)? a.renewDay : a.renewDay+31;
+const nb = (b.renewDay>=d)? b.renewDay : b.renewDay+31;
+return na-nb;
+});
+for(const s of sorted){
+const el=document.createElement("div"); el.className="item";
+const soon = s.renewDay===d || s.renewDay===d+1 ? " · soon" : "";
+el.innerHTML = `
+<div class="meta">
+<b>${s.name} · ${money(s.cost)}/mo</b>
+<span>Renews day ${s.renewDay}${soon}</span>
+</div>
+<div class="right">
+<span class="tag" style="cursor:pointer" title="Toggle" data-sub="${s.id}">${s.worthIt?"Still worth it":"Not sure"}</span>
+<button class="smallbtn" title="Remove">✕</button>
+</div>
+`;
+el.querySelector('[data-sub]').onclick = ()=>toggleSub(s.id);
+el.querySelector('button').onclick = ()=>removeSub(s.id);
+list.appendChild(el);
+}
+}
+
+/* --------------------------- Main render --------------------------- */
+function renderAll(){
+suggestDailyFromPurchases(); // interconnection step (auto hints)
+save();
+
+renderKPIs();
+renderPurchases();
+
+renderDailyIntent();
+renderDayGrid();
+renderCategoryPulse();
+renderImpulsePlannedDots();
+renderTreats();
+renderValues();
+
+renderSavings();
+renderEmergency();
+renderStress();
+
+renderWeeklyIntent();
+renderReflection();
+renderSubs();
+}
+
+/* --------------------------- Init --------------------------- */
+renderAll();
+</script>
+</body>
+</html>
+
